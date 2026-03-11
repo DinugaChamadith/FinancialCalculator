@@ -10,7 +10,6 @@
 
   gtag('config', 'G-V5HG1VNR1C');
 </script>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Elite Interest Suite</title>
@@ -97,17 +96,19 @@
             display: flex;
             overflow: hidden;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            flex-wrap: wrap;
         }
 
         .nav-btn {
             flex: 1;
+            min-width: 120px;
             background: transparent;
             border: none;
             color: var(--text-muted);
             padding: 18px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -278,6 +279,15 @@
             font-weight: 600;
         }
 
+        .highlight-box {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px dashed var(--primary-gold);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
         footer {
             margin-top: 40px;
             padding: 30px;
@@ -347,28 +357,36 @@
             <div class="nav-container">
                 <button class="nav-btn active" onclick="switchMode('compound', this)">Compound</button>
                 <button class="nav-btn" onclick="switchMode('simple', this)">Simple</button>
-                <button class="nav-btn" onclick="switchMode('reducing', this)">Reducing Balance</button>
+                <button class="nav-btn" onclick="switchMode('reducing', this)">Reducing</button>
+                <button class="nav-btn" onclick="switchMode('rate-find', this)">Find Rate</button>
             </div>
         </div>
 
         <div class="main-layout">
             <aside class="content-box">
                 <div class="calc-grid">
-                    <h3 style="font-family: 'Playfair Display', serif; color: var(--primary-gold); margin-bottom: 10px; font-size: 1.1rem;">Parameters</h3>
+                    <h3 id="aside-title" style="font-family: 'Playfair Display', serif; color: var(--primary-gold); margin-bottom: 10px; font-size: 1.1rem;">Parameters</h3>
+                    
                     <div class="input-group">
                         <label>Principal Amount</label>
                         <input type="text" id="principal" placeholder="Enter principal value" oninput="formatPrincipal(this)">
                     </div>
-                    <div class="input-group">
+
+                    <div class="input-group" id="target-rate-group">
                         <label>Annual Interest Rate (%)</label>
                         <input type="number" id="rate" placeholder="Enter interest rate" oninput="calculate()">
+                    </div>
+
+                    <div class="input-group" id="target-value-group" style="display: none;">
+                        <label id="target-value-label">Target Maturity Value</label>
+                        <input type="text" id="target-value" placeholder="Enter target amount" oninput="formatMaturityInput(this)">
                     </div>
                     
                     <div class="input-group">
                         <label>Maturity Period</label>
                         <div class="multi-input-row">
-                            <input type="number" id="years" placeholder="Years" oninput="calculate()" min="0">
-                            <input type="number" id="months" placeholder="Mon" oninput="calculate()" min="0">
+                            <input type="number" id="years" placeholder="Yrs" oninput="calculate()" min="0">
+                            <input type="number" id="months" placeholder="Mos" oninput="calculate()" min="0">
                             <input type="number" id="days" placeholder="Days" oninput="calculate()" min="0">
                         </div>
                     </div>
@@ -382,21 +400,36 @@
                             <option value="12">Monthly</option>
                         </select>
                     </div>
+
+                    <div class="input-group" id="rate-calc-type-group" style="display: none;">
+                        <label>Calculation Model</label>
+                        <select id="rate-calc-type" onchange="calculate()">
+                            <option value="simple">Simple Interest</option>
+                            <option value="compound">Compound Interest</option>
+                            <option value="reducing">Reducing Balance</option>
+                        </select>
+                    </div>
                 </div>
             </aside>
 
             <main class="right-column">
                 <div class="content-box">
                     <div class="summary-box">
-                        <div class="summary-item">
-                            <span class="lbl">Total Interest</span>
+                        <div class="summary-item" id="summary-left">
+                            <span class="lbl" id="summary-left-label">Total Interest</span>
                             <span class="val" id="total-interest">$0.00</span>
                         </div>
-                        <div class="summary-item" id="maturity-projection-container">
-                            <span class="lbl" id="maturity-label">Maturity Projection</span>
+                        <div class="summary-item" id="summary-right">
+                            <span class="lbl" id="summary-right-label">Maturity Projection</span>
                             <span class="val" id="total-value">$0.00</span>
                         </div>
                     </div>
+                </div>
+
+                <!-- Result Box for Rate Finding -->
+                <div id="rate-result-box" class="content-box highlight-box" style="display: none;">
+                    <span class="lbl" style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Required Annual Rate</span>
+                    <span class="val" id="calculated-rate-display" style="font-size: 2.2rem; font-weight: 700; color: var(--primary-gold); display: block;">0.00%</span>
                 </div>
 
                 <!-- Chart Section -->
@@ -448,13 +481,12 @@
         <footer>
             <div class="footer-content">
                 <p>Designed and Developed by <span class="creator-tag">Dinuga Chamadith</span></p>
-                <p>&copy; <span id="year"></span> Financial Intelligence Suite. All rights reserved.</p>
+                <p>&copy; 2024 Financial Intelligence Suite. All rights reserved.</p>
                 <div class="footer-links">
                     <a href="#">Security Policy</a>
                     <a href="#">Terms of Wealth</a>
                     <a href="#">Contact Advisory</a>
                 </div>
-                <p style="margin-top: 15px; font-size: 0.75rem; opacity: 0.6;">Market projections are for informational purposes only. Past performance does not guarantee future results.</p>
             </div>
         </footer>
     </div>
@@ -466,6 +498,7 @@
         let ledgerData = [];
         let calculatedTotalInterest = 0;
         let calculatedTotalValue = 0;
+        let finalRateFound = 0;
 
         window.onload = () => {
             const inputs = document.querySelectorAll('input');
@@ -490,24 +523,11 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { labels: { color: '#e0e0e0', font: { family: 'Inter' } } },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + formatCurrency(context.raw);
-                                }
-                            }
-                        }
+                        legend: { labels: { color: '#e0e0e0', font: { family: 'Inter' } } }
                     },
                     scales: {
-                        y: { 
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: '#a0a0a0' }
-                        },
-                        x: { 
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: '#a0a0a0' }
-                        }
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#a0a0a0' } },
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#a0a0a0' } }
                     }
                 }
             });
@@ -515,12 +535,12 @@
 
         function updateChart() {
             if (!chartInstance) return;
-
             const principal = parseFloat(document.getElementById('principal').value.replace(/,/g, '')) || 0;
 
+            chartInstance.destroy();
+            const ctx = document.getElementById('projectionChart').getContext('2d');
+
             if (chartType === 'pie') {
-                chartInstance.destroy();
-                const ctx = document.getElementById('projectionChart').getContext('2d');
                 chartInstance = new Chart(ctx, {
                     type: 'pie',
                     data: {
@@ -532,26 +552,9 @@
                             borderWidth: 1
                         }]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'bottom', labels: { color: '#e0e0e0' } },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return context.label + ': ' + formatCurrency(context.raw);
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#e0e0e0' } } } }
                 });
             } else {
-                chartInstance.destroy();
-                const ctx = document.getElementById('projectionChart').getContext('2d');
-                
-                // Downsample for large daily datasets to maintain performance
                 let displayData = ledgerData;
                 if (ledgerData.length > 100) {
                     const step = Math.ceil(ledgerData.length / 100);
@@ -563,7 +566,7 @@
                     data: {
                         labels: displayData.map(d => d.period),
                         datasets: [{
-                            label: currentMode === 'reducing' ? 'Remaining Balance ($)' : 'Portfolio Value ($)',
+                            label: (currentMode === 'reducing' || (currentMode === 'rate-find' && document.getElementById('rate-calc-type').value === 'reducing')) ? 'Remaining Balance ($)' : 'Portfolio Value ($)',
                             data: displayData.map(d => d.closing),
                             borderColor: '#d4af37',
                             backgroundColor: chartType === 'bar' ? 'rgba(212, 175, 55, 0.5)' : 'rgba(212, 175, 55, 0.1)',
@@ -574,9 +577,7 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: { labels: { color: '#e0e0e0' } }
-                        },
+                        plugins: { legend: { labels: { color: '#e0e0e0' } } },
                         scales: {
                             y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#a0a0a0' } },
                             x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#a0a0a0' } }
@@ -592,30 +593,46 @@
             btn.classList.add('active');
 
             const freqGroup = document.getElementById('compounding-freq-group');
-            const maturityLabel = document.getElementById('maturity-label');
-            
+            const rateGroup = document.getElementById('target-rate-group');
+            const valueGroup = document.getElementById('target-value-group');
+            const rateCalcGroup = document.getElementById('rate-calc-type-group');
+            const rateResultBox = document.getElementById('rate-result-box');
+            const summaryRightLabel = document.getElementById('summary-right-label');
+
+            freqGroup.style.display = 'flex';
+            rateGroup.style.display = 'flex';
+            valueGroup.style.display = 'none';
+            rateCalcGroup.style.display = 'none';
+            rateResultBox.style.display = 'none';
+            summaryRightLabel.innerText = "Maturity Projection";
+
             if (mode === 'simple' || mode === 'reducing') {
                 freqGroup.style.opacity = '0.3';
                 freqGroup.style.pointerEvents = 'none';
+                if (mode === 'reducing') summaryRightLabel.innerText = "Total Repayment";
+            } else if (mode === 'rate-find') {
+                rateGroup.style.display = 'none';
+                valueGroup.style.display = 'flex';
+                rateCalcGroup.style.display = 'flex';
+                rateResultBox.style.display = 'block';
+                freqGroup.style.display = 'flex';
+                freqGroup.style.opacity = '1';
+                freqGroup.style.pointerEvents = 'auto';
             } else {
                 freqGroup.style.opacity = '1';
                 freqGroup.style.pointerEvents = 'auto';
             }
 
-            if (mode === 'reducing') {
-                maturityLabel.innerText = "Total Repayment";
-            } else {
-                maturityLabel.innerText = "Maturity Projection";
-            }
-
             calculate();
         }
 
-        function formatPrincipal(input) {
+        function formatPrincipal(input) { formatNumberInput(input); calculate(); }
+        function formatMaturityInput(input) { formatNumberInput(input); calculate(); }
+
+        function formatNumberInput(input) {
             let value = input.value.replace(/[^\d.]/g, '');
             const parts = value.split('.');
             if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
-
             if (value !== '') {
                 const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
                 const decimalPart = parts[1] !== undefined ? '.' + parts[1] : '';
@@ -623,19 +640,14 @@
             } else {
                 input.value = '';
             }
-            calculate();
         }
 
         function calculate() {
-            const pStr = document.getElementById('principal').value.replace(/,/g, '');
-            const P = parseFloat(pStr) || 0;
-            const r = (parseFloat(document.getElementById('rate').value) || 0) / 100;
-            
+            const P = parseFloat(document.getElementById('principal').value.replace(/,/g, '')) || 0;
             const yrs = parseFloat(document.getElementById('years').value) || 0;
             const mos = parseFloat(document.getElementById('months').value) || 0;
             const dys = parseFloat(document.getElementById('days').value) || 0;
             const t = yrs + (mos / 12) + (dys / 365);
-
             const n = parseInt(document.getElementById('freq').value) || 1;
             const breakdown = document.getElementById('ledger-breakdown').value;
 
@@ -643,28 +655,22 @@
             calculatedTotalValue = 0;
             calculatedTotalInterest = 0;
 
-            if (currentMode === 'simple') {
-                calculatedTotalInterest = P * r * t;
-                calculatedTotalValue = P + calculatedTotalInterest;
-                generateSimpleLedger(P, r, t, breakdown);
-            } 
-            else if (currentMode === 'compound') {
-                calculatedTotalValue = P * Math.pow((1 + r/n), (n * t));
-                calculatedTotalInterest = calculatedTotalValue - P;
-                generateCompoundLedger(P, r, n, t, breakdown);
-            }
-            else if (currentMode === 'reducing') {
-                const monthlyRate = r / 12;
-                const totalMonths = Math.round(t * 12);
-                if (monthlyRate > 0 && totalMonths > 0) {
-                    const emi = (P * monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) / (Math.pow(1 + monthlyRate, totalMonths) - 1);
-                    calculatedTotalValue = emi * totalMonths;
+            if (currentMode === 'rate-find') {
+                const targetV = parseFloat(document.getElementById('target-value').value.replace(/,/g, '')) || 0;
+                const model = document.getElementById('rate-calc-type').value;
+                findInterestRate(P, targetV, t, n, model, breakdown);
+            } else {
+                const r = (parseFloat(document.getElementById('rate').value) || 0) / 100;
+                if (currentMode === 'simple') {
+                    calculatedTotalInterest = P * r * t;
+                    calculatedTotalValue = P + calculatedTotalInterest;
+                    generateSimpleLedger(P, r, t, breakdown);
+                } else if (currentMode === 'compound') {
+                    calculatedTotalValue = P * Math.pow((1 + r/n), (n * t));
                     calculatedTotalInterest = calculatedTotalValue - P;
-                    generateReducingLedger(P, monthlyRate, totalMonths, emi, breakdown);
-                } else {
-                    calculatedTotalValue = P;
-                    calculatedTotalInterest = 0;
-                    document.getElementById('ledger-body').innerHTML = '';
+                    generateCompoundLedger(P, r, n, t, breakdown);
+                } else if (currentMode === 'reducing') {
+                    calculateReducing(P, r, t, breakdown);
                 }
             }
 
@@ -673,8 +679,64 @@
             updateChart();
         }
 
-        function formatCurrency(num) {
-            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+        function calculateReducing(P, r, t, breakdown) {
+            const monthlyRate = r / 12;
+            const totalMonths = Math.round(t * 12);
+            if (monthlyRate > 0 && totalMonths > 0) {
+                const emi = (P * monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) / (Math.pow(1 + monthlyRate, totalMonths) - 1);
+                calculatedTotalValue = emi * totalMonths;
+                calculatedTotalInterest = calculatedTotalValue - P;
+                generateReducingLedger(P, monthlyRate, totalMonths, emi, breakdown);
+            } else {
+                calculatedTotalValue = P;
+                calculatedTotalInterest = 0;
+                document.getElementById('ledger-body').innerHTML = '';
+            }
+        }
+
+        function findInterestRate(P, V, t, n, model, breakdown) {
+            if (P <= 0 || V <= 0 || t <= 0) {
+                document.getElementById('calculated-rate-display').innerText = "0.00%";
+                return;
+            }
+
+            let foundRate = 0;
+            if (model === 'simple') {
+                foundRate = (V - P) / (P * t);
+            } else if (model === 'compound') {
+                foundRate = n * (Math.pow(V / P, 1 / (n * t)) - 1);
+            } else if (model === 'reducing') {
+                const targetEMI = V / (t * 12);
+                let low = 0, high = 500; 
+                for(let i=0; i<60; i++) {
+                    let mid = (low + high) / 2;
+                    let r_mid = mid / 100 / 12;
+                    let emi_mid = (P * r_mid * Math.pow(1 + r_mid, t*12)) / (Math.pow(1 + r_mid, t*12) - 1);
+                    if (emi_mid < targetEMI) low = mid;
+                    else high = mid;
+                }
+                foundRate = low / 100;
+            }
+
+            // Standardize output to 2 decimal places as requested
+            const rateInPercent = foundRate * 100;
+            const formattedRate = rateInPercent.toFixed(2);
+            const finalCalculatedRate = parseFloat(formattedRate) / 100;
+
+            document.getElementById('calculated-rate-display').innerText = formattedRate + "%";
+            
+            // Recalculate everything using the exact 2-decimal rounded rate to ensure UI consistency
+            if (model === 'simple') {
+                calculatedTotalInterest = P * finalCalculatedRate * t;
+                calculatedTotalValue = P + calculatedTotalInterest;
+                generateSimpleLedger(P, finalCalculatedRate, t, breakdown);
+            } else if (model === 'compound') {
+                calculatedTotalValue = P * Math.pow((1 + finalCalculatedRate/n), (n * t));
+                calculatedTotalInterest = calculatedTotalValue - P;
+                generateCompoundLedger(P, finalCalculatedRate, n, t, breakdown);
+            } else if (model === 'reducing') {
+                calculateReducing(P, finalCalculatedRate, t, breakdown);
+            }
         }
 
         function generateSimpleLedger(P, r, t, breakdown) {
@@ -682,7 +744,6 @@
             if (steps === 0) return;
             const interestPerStep = (P * r * t) / steps;
             let currentBalance = P;
-
             for (let i = 1; i <= steps; i++) {
                 const interest = interestPerStep;
                 const closing = currentBalance + interest;
@@ -695,12 +756,9 @@
         function generateCompoundLedger(P, r, n, t, breakdown) {
             const steps = getSteps(t, breakdown);
             if (steps === 0) return;
-
             let currentBalance = P;
-            const totalValue = P * Math.pow((1 + r/n), (n * t));
-            const totalInt = totalValue - P;
+            const totalInt = (P * Math.pow((1 + r/n), (n * t))) - P;
             const intPerStep = totalInt / steps;
-
             for (let i = 1; i <= steps; i++) {
                 const interest = intPerStep;
                 const closing = currentBalance + interest;
@@ -712,50 +770,33 @@
 
         function generateReducingLedger(P, monthlyRate, totalMonths, emi, breakdown) {
             let balance = P;
-            let displayInterval = 1;
-            if (breakdown === 'annual') displayInterval = 12;
-            else if (breakdown === 'quarter') displayInterval = 3;
-            else if (breakdown === 'day') displayInterval = 0; // special case
-
+            let displayInterval = (breakdown === 'annual') ? 12 : (breakdown === 'quarter' ? 3 : 1);
             let stepCounter = 1;
-            let pInterestAccumulated = 0;
-            let pOpeningAtStartOfStep = P;
+            let pInterestAccum = 0;
+            let pOpeningStart = P;
 
             if (breakdown === 'day') {
                 const totalDays = Math.max(1, Math.round(totalMonths * 30.4375));
                 const dailyRate = (monthlyRate * 12) / 365;
-                const totalExpectedRepayment = emi * totalMonths;
-                const dailyEmi = totalExpectedRepayment / totalDays;
-                
+                const totalExpected = emi * totalMonths;
+                const dailyEmi = totalExpected / totalDays;
                 let dBalance = P;
                 for (let d = 1; d <= totalDays; d++) {
                     const interest = dBalance * dailyRate;
-                    const principalPaid = dailyEmi - interest;
                     const dOpening = dBalance;
-                    dBalance -= principalPaid;
-                    ledgerData.push({ 
-                        period: formatPeriodLabel(d, breakdown), 
-                        opening: dOpening, 
-                        interest: interest, 
-                        closing: Math.max(0, dBalance) 
-                    });
+                    const pPaid = dailyEmi - interest;
+                    dBalance -= pPaid;
+                    ledgerData.push({ period: 'D'+d, opening: dOpening, interest, closing: Math.max(0, dBalance) });
                 }
             } else {
                 for (let m = 1; m <= totalMonths; m++) {
                     const interest = balance * monthlyRate;
-                    const principalPaid = emi - interest;
-                    pInterestAccumulated += interest;
-                    balance -= principalPaid;
-
+                    balance -= (emi - interest);
+                    pInterestAccum += interest;
                     if (m % displayInterval === 0 || m === totalMonths) {
-                        ledgerData.push({ 
-                            period: formatPeriodLabel(stepCounter++, breakdown), 
-                            opening: pOpeningAtStartOfStep, 
-                            interest: pInterestAccumulated, 
-                            closing: Math.max(0, balance) 
-                        });
-                        pOpeningAtStartOfStep = balance;
-                        pInterestAccumulated = 0;
+                        ledgerData.push({ period: formatPeriodLabel(stepCounter++, breakdown), opening: pOpeningStart, interest: pInterestAccum, closing: Math.max(0, balance) });
+                        pOpeningStart = balance;
+                        pInterestAccum = 0;
                     }
                 }
             }
@@ -763,32 +804,18 @@
         }
 
         function formatPeriodLabel(i, breakdown) {
-            const label = breakdown === 'annual' ? 'Y' : (breakdown === 'quarter' ? 'Q' : (breakdown === 'month' ? 'M' : 'D'));
-            return `${label}${i}`;
+            const l = breakdown === 'annual' ? 'Y' : (breakdown === 'quarter' ? 'Q' : 'M');
+            return l + i;
         }
 
         function renderTable() {
             const tbody = document.getElementById('ledger-body');
             tbody.innerHTML = '';
-            const displayLimit = 500;
-            const dataToRender = ledgerData.slice(0, displayLimit);
-            
-            dataToRender.forEach(row => {
+            ledgerData.slice(0, 500).forEach(row => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.period}</td>
-                    <td>${formatCurrency(row.opening)}</td>
-                    <td>${formatCurrency(row.interest)}</td>
-                    <td>${formatCurrency(row.closing)}</td>
-                `;
+                tr.innerHTML = `<td>${row.period}</td><td>${formatCurrency(row.opening)}</td><td>${formatCurrency(row.interest)}</td><td>${formatCurrency(row.closing)}</td>`;
                 tbody.appendChild(tr);
             });
-
-            if (ledgerData.length > displayLimit) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td colspan="4" style="text-align:center; color:var(--primary-gold); font-size: 0.7rem; padding: 20px;">Showing first ${displayLimit} of ${ledgerData.length} records...</td>`;
-                tbody.appendChild(tr);
-            }
         }
 
         function getSteps(t, breakdown) {
@@ -798,7 +825,10 @@
             if (breakdown === 'month') return Math.ceil(t * 12);
             return Math.ceil(t * 365.25);
         }
-        document.getElementById("year").innerText = new Date().getFullYear();
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+        }
     </script>
 </body>
 </html>
