@@ -481,7 +481,7 @@
         <footer>
             <div class="footer-content">
                 <p>Designed and Developed by <span class="creator-tag">Dinuga Chamadith</span></p>
-                <p>&copy; 2024 Financial Intelligence Suite. All rights reserved.</p>
+                <p>&copy; <span id="year"></span> Financial Intelligence Suite. All rights reserved.</p>
                 <div class="footer-links">
                     <a href="#">Security Policy</a>
                     <a href="#">Terms of Wealth</a>
@@ -829,6 +829,7 @@
         function formatCurrency(num) {
             return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
         }
+        document.getElementById("year").innerText = new Date().getFullYear();
     </script>
 </body>
 </html>
